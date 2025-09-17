@@ -1,9 +1,9 @@
 @Library('Shared') _
 pipeline {
-    agent {label 'Node'}
+    agent any
     
     environment{
-        SONAR_HOME = tool "Sonar"
+        SONAR_HOME = tool "SonarQube"
     }
     
     parameters {
@@ -32,7 +32,7 @@ pipeline {
         stage('Git: Code Checkout') {
             steps {
                 script{
-                    code_checkout("https://github.com/LondheShubham153/Wanderlust-Mega-Project.git","main")
+                    code_checkout("https://github.com/abhay41/Wanderlust.git","main")
                 }
             }
         }
@@ -56,7 +56,7 @@ pipeline {
         stage("SonarQube: Code Analysis"){
             steps{
                 script{
-                    sonarqube_analysis("Sonar","wanderlust","wanderlust")
+                    sonarqube_analysis("SonarQube", "wanderlust", "wanderlust")
                 }
             }
         }
@@ -75,33 +75,37 @@ pipeline {
                     steps {
                         script{
                             dir("Automations"){
-                                sh "bash updatebackendnew.sh"
+                                withAWS(credentials: 'aws-creds', region: 'ap-south-1') {
+                                    sh "bash updatebackendnew.sh"
                             }
                         }
                     }
                 }
+            }
                 
                 stage("Frontend env setup"){
                     steps {
                         script{
                             dir("Automations"){
-                                sh "bash updatefrontendnew.sh"
+                                withAWS(credentials: 'aws-creds', region: 'ap-south-1') {
+                                    sh "bash updatefrontendnew.sh"
                             }
                         }
                     }
                 }
             }
         }
+    }
         
         stage("Docker: Build Images"){
             steps{
                 script{
                         dir('backend'){
-                            docker_build("wanderlust-backend-beta","${params.BACKEND_DOCKER_TAG}","trainwithshubham")
+                            docker_build("wanderlust-backend","${params.BACKEND_DOCKER_TAG}","abhay41")
                         }
                     
                         dir('frontend'){
-                            docker_build("wanderlust-frontend-beta","${params.FRONTEND_DOCKER_TAG}","trainwithshubham")
+                            docker_build("wanderlust-frontend","${params.FRONTEND_DOCKER_TAG}","abhay41")
                         }
                 }
             }
@@ -110,8 +114,8 @@ pipeline {
         stage("Docker: Push to DockerHub"){
             steps{
                 script{
-                    docker_push("wanderlust-backend-beta","${params.BACKEND_DOCKER_TAG}","trainwithshubham") 
-                    docker_push("wanderlust-frontend-beta","${params.FRONTEND_DOCKER_TAG}","trainwithshubham")
+                    docker_push("wanderlust-backend","${params.BACKEND_DOCKER_TAG}","abhay41") 
+                    docker_push("wanderlust-frontend","${params.FRONTEND_DOCKER_TAG}","abhay41")
                 }
             }
         }
